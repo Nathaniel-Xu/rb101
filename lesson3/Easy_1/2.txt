@@ -1,0 +1,19 @@
+what is != and where should you use it?
+!= means not equal, it returns true if the arguments are not equal and false if
+they are. You should use it to determine if two things are not equal.
+
+put ! before something, like !user_name
+it would return the opposite boolean of the object
+
+put ! after something, like words.uniq!
+this usually signifies a method that mutates argument, though not all mutating
+methods use !
+
+put ? before something
+it would return an error as ? is not a method
+
+put ? after something
+this usually signifies a method that returns a boolean
+
+put !! before something, like !!user_name
+will return the boolean form of the object

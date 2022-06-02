@@ -1,18 +1,18 @@
 VALID_CHOICES = %w(rock paper scissors lizard spock)
-
-def prompt(message)
-  puts("=> #{message}")
-end
-
-def win?(first, second)
-win_conditions = { 
+WIN_CONDITIONS = { 
   o: %w(scissors lizard),
   a: %w(rock spock),
   c: %w(paper lizard),
   p: %w(scissors rock),
   i: %w(spock paper)
 }
-  win_conditions[first[1].intern].include?(second)
+
+def prompt(message)
+  puts("=> #{message}")
+end
+
+def win?(first, second)
+  WIN_CONDITIONS[first[1].intern].include?(second)
 end
 
 def display_results(player, computer)

@@ -1,0 +1,1 @@
+0.upto(9){|num| puts " " * num + "The Flintstones Rock!"}
