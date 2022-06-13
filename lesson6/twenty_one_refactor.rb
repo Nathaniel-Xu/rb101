@@ -54,7 +54,7 @@ def display_result(score, player_total, dealer_total)
     prompt "It's a tie!"
     prompt "The score is: Player #{score[0]}, Dealer #{score[1]}"
   end
-  prompt "#{winner?(score)} reaches 5 points first!" if winner?(score)
+  prompt "#{match_winner(score)} reaches 5 points first!" if match_winner(score)
   pause
 end
 
@@ -66,11 +66,11 @@ def display_busted(score, player_total)
     prompt "Dealer busts! You win."
     prompt "The score is: Player #{score[0] += 1}, Dealer #{score[1]}"
   end
-  prompt "#{winner?(score)} reaches 5 points first!" if winner?(score)
+  prompt "#{match_winner(score)} reaches 5 points first!" if match_winner(score)
   pause
 end
 
-def winner?(score)
+def match_winner(score)
   if score[0] >= 5
     'Player'
   elsif score[1] >= 5
@@ -93,6 +93,7 @@ end
 score = [0, 0]
 prompt "Welcome to Twenty_One!"
 prompt "Find the rules at: https://bargames101.com/21-card-game-rule/"
+prompt "First to 5 wins!"
 pause
 loop do
   deck = initialize_deck
@@ -140,7 +141,7 @@ loop do
       prompt "Please enter either hit or stay"
     end
   end
-  break if winner?(score)
+  break if match_winner(score)
   prompt "Press enter to continue or type exit to stop"
   answer = gets.chomp.downcase
   break if answer.start_with?('e')
