@@ -53,10 +53,6 @@ def board_full?(board)
   empty_squares(board).empty?
 end
 
-def someone_won?(board)
-  !!game_winner(board)
-end
-
 def joinor(board)
   return board.first if board.size == 1
   temp = board.clone
@@ -76,19 +72,28 @@ def game_winner(board)
 end
 
 def match_winner(score)
-  if score[0] >= 5
+  if score[:player] >= 5
     'Player'
-  elsif score[1] >= 5
+  elsif score[:computer] >= 5
     'Computer'
   end
 end
 
-def increment_score!(score, match_winner)
-  match_winner == "Player" ? score[0] += 1 : score[1] += 1
+def increment_score!(score, winner)
+  score[:player] += 1 if winner == "Player"
+  score[:computer] += 1 if winner == "Computer"
 end
 
-def place_piece!(board, player)
-  player == "Player" ? player_places_piece!(board) : perfect_comp_move!(board)
+def place_piece!(board, player, difficulty)
+  if %w(i impossible).include?(difficulty)
+    player == "Player" ? player_places_piece!(board) : perfect_comp_move!(board)
+  else
+    player == "Player" ? player_places_piece!(board) : random_comp_move!(board)
+  end
+end
+
+def random_comp_move!(board)
+  board[empty_squares(board).sample] = COMPUTER_MARKER
 end
 
 def alternate_player(player)
@@ -102,8 +107,10 @@ def perfect_comp_move!(board)
     board[block_player(board)] = COMPUTER_MARKER
   elsif open_middle?(board)
     board[5] = COMPUTER_MARKER
-  else create_threat(board)
+  elsif create_threat(board)
     board[create_threat(board)] = COMPUTER_MARKER
+  else
+    random_comp_move!(board)
   end
 end
 
@@ -131,77 +138,104 @@ def winning_move(board)
   nil
 end
 
+def detect_threat_squares(board)
+  result = []
+  WINNING_LINES.each do |line|
+    if board.values_at(*line).count(INITIAL_MARKER) == 2 &&
+       board.values_at(*line).include?(COMPUTER_MARKER)
+      line.each do |num|
+        result << num if board[num] == INITIAL_MARKER
+      end
+    end
+  end
+  result
+end
+
 def create_threat(board)
   corners = [1, 3, 7, 9]
-  empty_corners = board.keys.select do |key|
-    key if corners.include?(key) && board[key] == INITIAL_MARKER
-  end
-  if empty_corners_with_threat(board, empty_corners)
-    return empty_corners_with_threat(board, empty_corners)
-  elsif any_threat(board)
-    return any_threat
-  end
-  return empty_corners.sample unless empty_corners.empty?
-  empty_squares(board).sample
+  empty_corners = empty_squares(board).intersection(corners)
+  threat_squares = detect_threat_squares(board)
+  threat_squares.each { |num| return num if empty_corners.include?(num) }
+  return threat_squares.sample unless threat_squares.empty?
+  empty_corners.sample unless empty_corners.empty?
 end
 
-def empty_corners_with_threat(board, empty_corners)
-  WINNING_LINES.each do |line|
-    if board.values_at(*line).count(INITIAL_MARKER) == 2 &&
-       board.values_at(*line).include?(COMPUTER_MARKER)
-      line.each do |num|
-        return num if board[num] == INITIAL_MARKER &&
-                      empty_corners.include?(num)
-      end
-    end
-  end
-  nil
+def display_introduction
+  system 'clear'
+  prompt "Welcome to Tic Tac Toe!"
+  prompt "Alternate placing symbols in a 3x3 board"
+  prompt "The goal is to get 3 in a row"
+  prompt "First to 5 wins match!"
 end
 
-def any_threat(board)
-  WINNING_LINES.each do |line|
-    if board.values_at(*line).count(INITIAL_MARKER) == 2 &&
-       board.values_at(*line).include?(COMPUTER_MARKER)
-      line.each do |num|
-        return num if board[num] == INITIAL_MARKER
-      end
-    end
-  end
-  nil
-end
-
-score = [0, 0]
-prompt "Welcome to Tic Tac Toe!"
-prompt "First to 5 wins!"
-loop do
+def goes_first
   prompt "Do you want to go first? (y/n)"
   answer = gets.chomp.downcase
-  current_player = answer.start_with?('n') ? 'Computer' : 'Player'
-  board = initialize_board
-  loop do
-    display_board(board)
-    place_piece!(board, current_player)
-    current_player = alternate_player(current_player)
-    break if someone_won?(board) || board_full?(board)
-  end
+  system 'clear'
+  %w(n no).include?(answer) ? 'Computer' : 'Player'
+end
+
+def alternate_turns(board, current_player, difficulty)
   display_board(board)
-  if someone_won?(board)
-    prompt "#{game_winner(board)} won!"
-    increment_score!(score, game_winner(board))
-    prompt "Score is: Player #{score[0]}, Dealer #{score[1]}"
-    if match_winner(score) == 'Player'
-      prompt 'You reached 5 points first!'
-      break
-    elsif match_winner(score) == 'Computer'
-      prompt 'Computer reached 5 points first'
-      break
-    end
+  loop do
+    place_piece!(board, current_player, difficulty)
+    display_board(board)
+    break if game_winner(board) || board_full?(board)
+    current_player = alternate_player(current_player)
+  end
+end
+
+def end_screen(board, score)
+  winner = game_winner(board)
+  increment_score!(score, winner)
+  if winner
+    prompt "#{winner} won!"
   else
     prompt "It's a tie!"
   end
-  prompt 'Continue? (y/n)'
-  answer = gets.chomp
-  break unless answer.downcase.start_with?('y')
+  prompt "Score is: Player #{score[:player]}, Computer #{score[:computer]}"
+  prompt "#{match_winner(score)} reached 5 points first!" if match_winner(score)
 end
 
+def stop_early?
+  prompt "Press enter to continue or type exit to stop"
+  answer = gets.chomp.downcase
+  true if %w(e exit).include?(answer)
+end
+
+def play_again?(answer = nil)
+  prompt "Play again? (y/n)"
+  loop do
+    answer = gets.chomp.downcase
+    break if %w(y yes n no).include?(answer)
+    prompt "Enter yes or no (y/n)"
+  end
+  true if %w(y yes).include?(answer)
+end
+
+def what_difficulty(answer = nil)
+  prompt "Would you like the easy or impossible difficulty? (e/i)"
+  loop do
+    answer = gets.chomp.downcase
+    break if %w(e easy i impossible).include?(answer)
+    prompt "Please enter easy or impossible (e/i)"
+  end
+  answer
+end
+
+loop do
+  display_introduction
+  difficulty = what_difficulty
+  score = { player: 0, computer: 0 }
+  loop do
+    board = initialize_board
+    display_board(board)
+    current_player = goes_first
+    alternate_turns(board, current_player, difficulty)
+    end_screen(board, score)
+    break if match_winner(score)
+    break if stop_early?
+  end
+  break unless play_again?
+end
 prompt('Thanks for playing Tic Tac Toe! Goodbye!')
